@@ -1,0 +1,132 @@
+import re
+
+BY5_VIDEO_PREFIX      = "/video/5by5"
+BY5_MUSIC_PREFIX      = "/music/5by5"
+
+TITLE = "5by5"
+ICON = "icon-default.png"
+ART = "art-default.jpg"
+
+CACHE_INTERVAL = 1800
+
+NAMESPACES = { 'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'atom10': 'http://www.w3.org/2005/Atom' }
+
+FEED_URL = 'http://feeds.feedburner.com/%s?format=xml'
+
+AUDIO_FEEDS = [ 'back2work', 'bigwebshow', 'brieflyawesome', 'buildanalyze', 'contenttalks', 'criticalpath', 
+                'dailyedition', '5by5-devshow', 'founderstalk', 'hypercritical', 'letsmakemistakes', '5by5-ontheinternet',
+                'PaleoPodcast', 'thepipelineshow', '5by5-superhero', 'thetalkshow']
+
+VIDEO_FEEDS = [ 'bigwebshowvideo', 'brieflyawesomevideo', 'devshowvideo', 'thetalkshow-video']
+
+####################################################################################################
+def Start():
+    Plugin.AddPrefixHandler(BY5_MUSIC_PREFIX, MainMenuMusic, TITLE, ICON, ART)
+    Plugin.AddPrefixHandler(BY5_VIDEO_PREFIX, MainMenuVideo, TITLE, ICON, ART)
+    Plugin.AddViewGroup("InfoList", viewMode = "InfoList", mediaType = "items")
+    MediaContainer.art = R(ART)
+    MediaContainer.title1 = TITLE
+    HTTP.SetCacheTime(CACHE_INTERVAL)
+
+####################################################################################################
+def MainMenuMusic():
+    dir = MediaContainer(viewGroup = 'InfoList')
+
+    for channel in AUDIO_FEEDS:
+        feed = XML.ElementFromURL(FEED_URL % channel)
+        title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
+        summary = feed.xpath("//channel/description/text()", namespaces = NAMESPACES)[0]
+        thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
+        dir.Append(Function(
+            DirectoryItem(
+                ChannelMenu, 
+                title = title,
+                summary = summary, 
+                thumb = thumb), 
+            channel = channel,
+            video = False))
+
+    return dir
+
+####################################################################################################
+def MainMenuVideo():
+    dir = MediaContainer(viewGroup = 'InfoList')
+
+    for channel in VIDEO_FEEDS:
+        feed = XML.ElementFromURL(FEED_URL % channel)
+        title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
+        summary = feed.xpath("//channel/description/text()", namespaces = NAMESPACES)[0]
+        thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
+        dir.Append(Function(
+            DirectoryItem(
+                ChannelMenu, 
+                title = title,
+                summary = summary, 
+                thumb = thumb), 
+            channel = channel,
+            video = True))
+
+    return dir
+
+####################################################################################################
+def ChannelMenu(sender, channel, video = False):
+
+    feed = XML.ElementFromURL(FEED_URL % channel)
+
+    show_title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
+    thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
+
+    dir = MediaContainer(viewGroup = 'InfoList', title2 = sender.itemTitle)
+
+    for item in feed.xpath("//item", namespaces = NAMESPACES):
+        title = item.xpath(".//title/text()", namespaces = NAMESPACES)[0]
+        subtitle = item.xpath(".//author/text()", namespaces = NAMESPACES)[0]
+        url = item.xpath(".//enclosure", namespaces = NAMESPACES)[0].get('url')
+        
+        # [Optional]
+        summary = None
+        try: summary = item.xpath(".//description/text()", namespaces = NAMESPACES)[0]
+        except: pass
+        
+        # The duration is in the format HH:MM:SS and therefore we must convert this into a suitable
+        # number of milliseconds.
+        duration_string = item.xpath(".//itunes:duration/text()", namespaces = NAMESPACES)[0]
+        duration_dict = re.match("((?P<hours>[0-9]+):)?(?P<mins>[0-9]+):(?P<secs>[0-9]+)", duration_string).groupdict()
+        
+        hours = 0
+        try: hours = int(duration_dict['hours'])
+        except: pass
+        mins = 0
+        try: mins = int(duration_dict['mins'])
+        except: pass
+        secs = 0
+        try: secs = int(duration_dict['secs'])
+        except: pass
+        duration = (hours * 3600 + mins * 60 + secs) * 1000
+        
+        if video:
+            
+            # The title's of video items allways end in "- Video", which is not really helpful, therefore we
+            # will simply remove it.
+            title = title.strip("- Video")
+            
+            dir.Append(VideoItem(
+                url, 
+                title = title, 
+                subtitle = subtitle, 
+                summary = summary, 
+                duration = duration,
+                thumb = thumb
+            ))
+        else:
+            dir.Append(TrackItem(
+                url,
+                title = title,
+                subtitle = subtitle, 
+                artist = show_title,
+                summary = summary,
+                duration = duration,
+                thumb = thumb
+            ))
+
+    return dir
