@@ -26,11 +26,12 @@ def Start():
     Plugin.AddViewGroup("InfoList", viewMode = "InfoList", mediaType = "items")
     MediaContainer.art = R(ART)
     MediaContainer.title1 = TITLE
-    HTTP.SetCacheTime(CACHE_INTERVAL)
+    MediaContainer.viewGroup = 'InfoList'
+    HTTP.CacheTime(CACHE_INTERVAL)
 
 ####################################################################################################
 def MainMenuMusic():
-    dir = MediaContainer(viewGroup = 'InfoList')
+    dir = MediaContainer()
 
     for channel in AUDIO_FEEDS:
         feed = XML.ElementFromURL(FEED_URL % channel)
@@ -50,7 +51,7 @@ def MainMenuMusic():
 
 ####################################################################################################
 def MainMenuVideo():
-    dir = MediaContainer(viewGroup = 'InfoList')
+    dir = MediaContainer()
 
     for channel in VIDEO_FEEDS:
         feed = XML.ElementFromURL(FEED_URL % channel)
@@ -76,7 +77,7 @@ def ChannelMenu(sender, channel, video = False):
     show_title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
     thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
 
-    dir = MediaContainer(viewGroup = 'InfoList', title2 = sender.itemTitle)
+    dir = MediaContainer(title2 = sender.itemTitle)
 
     for item in feed.xpath("//item", namespaces = NAMESPACES):
         title = item.xpath(".//title/text()", namespaces = NAMESPACES)[0]
