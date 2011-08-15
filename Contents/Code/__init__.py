@@ -27,7 +27,7 @@ def Start():
     MediaContainer.art = R(ART)
     MediaContainer.title1 = TITLE
     MediaContainer.viewGroup = 'InfoList'
-    HTTP.CacheTime(CACHE_INTERVAL)
+    HTTP.CacheTime = CACHE_INTERVAL
 
 ####################################################################################################
 def MainMenuMusic():
