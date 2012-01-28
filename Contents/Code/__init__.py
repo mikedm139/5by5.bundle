@@ -80,9 +80,13 @@ def ChannelMenu(sender, channel, video = False):
 
     for item in feed.xpath("//item", namespaces = NAMESPACES):
         title = item.xpath(".//title/text()", namespaces = NAMESPACES)[0]
-        subtitle = item.xpath(".//author/text()", namespaces = NAMESPACES)[0]
         url = item.xpath(".//enclosure", namespaces = NAMESPACES)[0].get('url')
         
+        # [Optional]
+        subtitle = None
+        try: subtitle = item.xpath(".//author/text()", namespaces = NAMESPACES)[0]
+        except: pass
+
         # [Optional]
         summary = None
         try: summary = item.xpath(".//description/text()", namespaces = NAMESPACES)[0]
