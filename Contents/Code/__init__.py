@@ -14,7 +14,7 @@ NAMESPACES = { 'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'atom10':
 FEED_URL = 'http://feeds.feedburner.com/%s?format=xml'
 
 AUDIO_FEEDS = [ 'back2work', 'bigwebshow', 'brieflyawesome', 'buildanalyze', 'contenttalks', 'criticalpath', 
-                'dailyedition', '5by5-devshow', 'founderstalk', 'hypercritical', 'letsmakemistakes', '5by5-ontheinternet',
+                'dailyedition', '5by5-devshow', 'founderstalk', 'hypercritical', '5by5-ontheinternet',
                 'PaleoPodcast', 'thepipelineshow', '5by5-superhero', 'thetalkshow']
 
 VIDEO_FEEDS = [ 'bigwebshowvideo', 'brieflyawesomevideo', 'devshowvideo', 'thetalkshow-video']
@@ -24,74 +24,77 @@ def Start():
     Plugin.AddPrefixHandler(BY5_MUSIC_PREFIX, MainMenuMusic, TITLE, ICON, ART)
     Plugin.AddPrefixHandler(BY5_VIDEO_PREFIX, MainMenuVideo, TITLE, ICON, ART)
     Plugin.AddViewGroup("InfoList", viewMode = "InfoList", mediaType = "items")
-    MediaContainer.art = R(ART)
-    MediaContainer.title1 = TITLE
+
+    ObjectContainer.title1 = TITLE
+    ObjectContainer.view_group = 'InfoList'
+    ObjectContainer.art = R(ART)
+
+    DirectoryObject.thumb = R(ICON)
+    DirectoryObject.art = R(ART)
+    VideoClipObject.thumb = R(ICON)
+    VideoClipObject.art = R(ART)
+    TrackObject.thumb = R(ICON)
+    TrackObject.art = R(ART)
+
     HTTP.SetCacheTime(CACHE_INTERVAL)
 
 ####################################################################################################
 def MainMenuMusic():
-    dir = MediaContainer(viewGroup = 'InfoList')
+    oc = ObjectContainer()
 
     for channel in AUDIO_FEEDS:
+
         feed = XML.ElementFromURL(FEED_URL % channel)
         title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
         summary = feed.xpath("//channel/description/text()", namespaces = NAMESPACES)[0]
         thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
-        dir.Append(Function(
-            DirectoryItem(
-                ChannelMenu, 
-                title = title,
-                summary = summary, 
-                thumb = thumb), 
-            channel = channel,
-            video = False))
+        
+        oc.add(DirectoryObject(key = 
+            Callback(ChannelMenu, channel_title = title, channel = channel, video = False), 
+            title = title,
+            summary = summary,
+            thumb = thumb))
 
-    return dir
+    return oc
 
 ####################################################################################################
 def MainMenuVideo():
-    dir = MediaContainer(viewGroup = 'InfoList')
+    oc = ObjectContainer()
 
     for channel in VIDEO_FEEDS:
+
         feed = XML.ElementFromURL(FEED_URL % channel)
         title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
         summary = feed.xpath("//channel/description/text()", namespaces = NAMESPACES)[0]
         thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
-        dir.Append(Function(
-            DirectoryItem(
-                ChannelMenu, 
-                title = title,
-                summary = summary, 
-                thumb = thumb), 
-            channel = channel,
-            video = True))
+        
+        oc.add(DirectoryObject(key = 
+            Callback(ChannelMenu, channel_title = title, channel = channel, video = True), 
+            title = title,
+            summary = summary,
+            thumb = thumb))
 
-    return dir
+    return oc
 
 ####################################################################################################
-def ChannelMenu(sender, channel, video = False):
+def ChannelMenu(channel_title, channel, video = False):
 
     feed = XML.ElementFromURL(FEED_URL % channel)
 
     show_title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
     thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
 
-    dir = MediaContainer(viewGroup = 'InfoList', title2 = sender.itemTitle)
+    oc = ObjectContainer(title2 = channel_title)
 
     for item in feed.xpath("//item", namespaces = NAMESPACES):
         title = item.xpath(".//title/text()", namespaces = NAMESPACES)[0]
-        url = item.xpath(".//enclosure", namespaces = NAMESPACES)[0].get('url')
+        url = item.xpath(".//link/text()", namespaces = NAMESPACES)[0]
         
-        # [Optional]
-        subtitle = None
-        try: subtitle = item.xpath(".//author/text()", namespaces = NAMESPACES)[0]
-        except: pass
-
         # [Optional]
         summary = None
         try: summary = item.xpath(".//description/text()", namespaces = NAMESPACES)[0]
         except: pass
-        
+
         # The duration is in the format HH:MM:SS and therefore we must convert this into a suitable
         # number of milliseconds.
         duration_string = item.xpath(".//itunes:duration/text()", namespaces = NAMESPACES)[0]
@@ -113,24 +116,22 @@ def ChannelMenu(sender, channel, video = False):
             # The title's of video items allways end in "- Video", which is not really helpful, therefore we
             # will simply remove it.
             title = title.strip("- Video")
-            
-            dir.Append(VideoItem(
-                url, 
-                title = title, 
-                subtitle = subtitle, 
-                summary = summary, 
-                duration = duration,
-                thumb = thumb
-            ))
-        else:
-            dir.Append(TrackItem(
-                url,
+
+            oc.add(VideoClipObject(
+                url = url + "#video",
                 title = title,
-                subtitle = subtitle, 
-                artist = show_title,
                 summary = summary,
-                duration = duration,
-                thumb = thumb
+                thumb = thumb,
+                duration = duration
             ))
 
-    return dir
+        else:
+            oc.add(TrackObject(
+                url = url,
+                title = title,
+                artist = show_title,
+                thumb = thumb,
+                duration = duration
+            ))
+
+    return oc
