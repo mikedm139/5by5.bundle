@@ -88,7 +88,7 @@ def ChannelMenu(channel_title, channel, video = False):
 
     for item in feed.xpath("//item", namespaces = NAMESPACES):
         title = item.xpath(".//title/text()", namespaces = NAMESPACES)[0]
-        url = item.xpath(".//link/text()", namespaces = NAMESPACES)[0]
+        url = item.xpath(".//guid/text()", namespaces = NAMESPACES)[0]
         
         # [Optional]
         summary = None
@@ -98,7 +98,7 @@ def ChannelMenu(channel_title, channel, video = False):
         # The duration is in the format HH:MM:SS and therefore we must convert this into a suitable
         # number of milliseconds.
         duration_string = item.xpath(".//itunes:duration/text()", namespaces = NAMESPACES)[0]
-        duration_dict = re.match("((?P<hours>[0-9]+):)?(?P<mins>[0-9]+):(?P<secs>[0-9]+)", duration_string).groupdict()
+        duration_dict = re.match("((?P<hours>[0-9]+):)?((?P<mins>[0-9]+):)?(?P<secs>[0-9]+)", duration_string).groupdict()
         
         hours = 0
         try: hours = int(duration_dict['hours'])
