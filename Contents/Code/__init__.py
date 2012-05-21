@@ -34,9 +34,8 @@ def Start():
     VideoClipObject.thumb = R(ICON)
     VideoClipObject.art = R(ART)
     TrackObject.thumb = R(ICON)
-    TrackObject.art = R(ART)
 
-    HTTP.SetCacheTime(CACHE_INTERVAL)
+    HTTP.CacheTime = CACHE_INTERVAL
 
 ####################################################################################################
 def MainMenuMusic():
