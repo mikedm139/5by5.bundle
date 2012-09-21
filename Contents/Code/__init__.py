@@ -21,8 +21,6 @@ VIDEO_FEEDS = [ 'bigwebshowvideo', 'brieflyawesomevideo', 'devshowvideo', 'theta
 
 ####################################################################################################
 def Start():
-    Plugin.AddPrefixHandler(BY5_MUSIC_PREFIX, MainMenuMusic, TITLE, ICON, ART)
-    Plugin.AddPrefixHandler(BY5_VIDEO_PREFIX, MainMenuVideo, TITLE, ICON, ART)
     Plugin.AddViewGroup("InfoList", viewMode = "InfoList", mediaType = "items")
 
     ObjectContainer.title1 = TITLE
@@ -39,6 +37,7 @@ def Start():
     HTTP.SetCacheTime(CACHE_INTERVAL)
 
 ####################################################################################################
+@handler('/music/5by5', TITLE, art = ART, thumb = ICON)
 def MainMenuMusic():
     oc = ObjectContainer()
 
@@ -50,7 +49,7 @@ def MainMenuMusic():
         thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
         
         oc.add(DirectoryObject(key = 
-            Callback(ChannelMenu, channel_title = title, channel = channel, video = False), 
+            Callback(MusicChannelMenu, channel = channel, channel_title = title), 
             title = title,
             summary = summary,
             thumb = thumb))
@@ -58,6 +57,7 @@ def MainMenuMusic():
     return oc
 
 ####################################################################################################
+@handler('/video/5by5', TITLE, art = ART, thumb = ICON)
 def MainMenuVideo():
     oc = ObjectContainer()
 
@@ -69,7 +69,7 @@ def MainMenuVideo():
         thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
         
         oc.add(DirectoryObject(key = 
-            Callback(ChannelMenu, channel_title = title, channel = channel, video = True), 
+            Callback(VideoChannelMenu, channel = channel, channel_title = title), 
             title = title,
             summary = summary,
             thumb = thumb))
@@ -77,7 +77,17 @@ def MainMenuVideo():
     return oc
 
 ####################################################################################################
-def ChannelMenu(channel_title, channel, video = False):
+@route('/music/5by5/{channel}', allow_sync = True)
+def MusicChannelMenu(channel, channel_title):
+    return ChannelMenu(channel, channel_title, False)
+
+####################################################################################################
+@route('/video/5by5/{channel}', allow_sync = True)
+def VideoChannelMenu(channel, channel_title):
+    return ChannelMenu(channel, channel_title, True)
+
+####################################################################################################
+def ChannelMenu(channel, channel_title, video = False):
 
     feed = XML.ElementFromURL(FEED_URL % channel)
 
