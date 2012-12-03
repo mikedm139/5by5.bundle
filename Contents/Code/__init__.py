@@ -70,7 +70,7 @@ def ChannelMenu(channel):
         # number of milliseconds.
         duration_string = item.xpath(".//itunes:duration/text()", namespaces = NAMESPACES)[0]
         duration_dict = re.match("((?P<hours>[0-9]+):)?(?P<mins>[0-9]+):(?P<secs>[0-9]+)", duration_string).groupdict()
-        Log(str(duration_dict))
+
         hours = 0
         try: hours = int(duration_dict['hours'])
         except: pass
