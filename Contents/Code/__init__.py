@@ -1,28 +1,16 @@
 TITLE = "5by5"
-ICON = "icon-default.png"
-ART = "art-default.jpg"
-
-NAMESPACES = {'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd', 'atom10': 'http://www.w3.org/2005/Atom'}
 BROADCAST_URL = 'http://5by5.tv/radio/broadcasts/list.json'
 FEED_URL = 'http://feeds.5by5.tv/%s'
+NAMESPACES = {'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
 
 ####################################################################################################
 def Start():
 
-    Plugin.AddViewGroup("InfoList", viewMode = "InfoList", mediaType = "items")
-
     ObjectContainer.title1 = TITLE
-    ObjectContainer.view_group = 'InfoList'
-    ObjectContainer.art = R(ART)
-
-    DirectoryObject.thumb = R(ICON)
-    DirectoryObject.art = R(ART)
-    TrackObject.thumb = R(ICON)
-
-    HTTP.CacheTime = 1800
+    HTTP.CacheTime = CACHE_1HOUR
 
 ####################################################################################################
-@handler('/music/5by5', TITLE, art = ART, thumb = ICON)
+@handler('/music/5by5', TITLE)
 def MainMenu():
 
     oc = ObjectContainer()
@@ -32,35 +20,34 @@ def MainMenu():
         channel = broadcast['broadcast']['slug']
         title = broadcast['broadcast']['title']
 
-        oc.add(DirectoryObject(key = 
-            Callback(ChannelMenu, channel = channel), 
+        oc.add(DirectoryObject(
+            key = Callback(ChannelMenu, channel=channel),
             title = title
         ))
 
     return oc
 
 ####################################################################################################
-@route('/music/5by5/{channel}', allow_sync = True)
+@route('/music/5by5/{channel}', allow_sync=True)
 def ChannelMenu(channel):
 
     feed = XML.ElementFromURL(FEED_URL % channel)
-    show_title = feed.xpath("//channel/title/text()", namespaces = NAMESPACES)[0]
-    thumb = feed.xpath("//channel/itunes:image", namespaces = NAMESPACES)[0].get('href')
-    oc = ObjectContainer(title2 = show_title)
+    show_title = feed.xpath("//channel/title/text()")[0]
+    thumb = feed.xpath("//channel/itunes:image/@href", namespaces=NAMESPACES)[0]
+    oc = ObjectContainer(title2=show_title)
 
-    for item in feed.xpath("//item", namespaces = NAMESPACES):
-        title = item.xpath(".//title/text()", namespaces = NAMESPACES)[0]
-        url = item.xpath(".//guid/text()", namespaces = NAMESPACES)[0]
+    for item in feed.xpath("//item"):
+        title = item.xpath(".//title/text()")[0]
+        url = item.xpath(".//guid/text()")[0]
 
         # [Optional]
-        summary = None
-        try: summary = item.xpath(".//itunes:summary/text()", namespaces = NAMESPACES)[0]
-        except: pass
+        try: summary = item.xpath(".//itunes:summary/text()", namespaces=NAMESPACES)[0]
+        except: summary = None
 
         # The duration is in the format HH:MM:SS and therefore we must convert this into a suitable
         # number of milliseconds.
-        duration_string = item.xpath(".//itunes:duration/text()", namespaces = NAMESPACES)[0]
-        duration = TimeToMs(duration_string)
+        duration_string = item.xpath(".//itunes:duration/text()", namespaces=NAMESPACES)[0]
+        duration = Datetime.MillisecondsFromString(duration_string)
 
         oc.add(TrackObject(
             url = url,
@@ -71,15 +58,3 @@ def ChannelMenu(channel):
         ))
 
     return oc
-
-####################################################################################################
-def TimeToMs(timecode):
-
-    seconds  = 0
-    duration = timecode.split(':')
-    duration.reverse()
-
-    for i in range(0, len(duration)):
-        seconds += int(duration[i]) * (60**i)
-
-    return seconds * 1000
